@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Spa Salon · Profit tracker (USD)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Light / dark gradient variables (orange & black / orange & white) */
+        :root {
+            --bg-page: linear-gradient(145deg, #fff7f0 0%, #ffffff 100%);
+            --surface: rgba(255, 245, 235, 0.7);
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --text-primary: #1e1b1a;
+            --text-secondary: #3b2e2a;
+            --border: #ffcdb0;
+            --accent-orange: #f97316;
+            --accent-dark: #27201c;
+            --profit-color: #15803d;
+            --loss-color: #b91c1c;
+            --shadow: 0 8px 20px rgba(0,0,0,0.03), 0 2px 6px rgba(251, 140, 0, 0.1);
+            --tag-bg: #ffedd5;
+            --header-bg: rgba(249, 115, 22, 0.15);
+            --toast-bg: #2b2b2b;
+            --toast-text: #f5f5f5;
+            --loading-overlay: rgba(0,0,0,0.3);
+        }
+
+        body.dark {
+            --bg-page: linear-gradient(145deg, #1f1a16 0%, #0d0b09 100%);
+            --surface: rgba(28, 25, 23, 0.8);
+            --card-bg: rgba(20, 15, 12, 0.9);
+            --text-primary: #fef2e8;
+            --text-secondary: #e7d9cf;
+            --border: #b45f2a;
+            --accent-orange: #ff8c3e;
+            --accent-dark: #fc7b1e;
+            --profit-color: #86efac;
+            --loss-color: #fca5a5;
+            --shadow: 0 8px 20px rgba(0,0,0,0.6);
+            --tag-bg: #3b3128;
+            --header-bg: rgba(249, 115, 22, 0.3);
+            --toast-bg: #3c3c3c;
+            --toast-text: #fff0e0;
+            --loading-overlay: rgba(0,0,0,0.7);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.2s, color 0.2s;
+            margin: 0;
+            padding: 16px;
+            position: relative;
+        }
+
+        /* Global loading overlay */
+        #globalLoading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--loading-overlay);
+            backdrop-filter: blur(3px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-spinner-large {
+            width: 60px;
+            height: 60px;
+            border: 6px solid var(--border);
+            border-top-color: var(--accent-orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* login container */
+        .login-container {
+            max-width: 380px;
+            margin: 3rem auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(6px);
+            padding: 2rem 1.5rem;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .login-container h2 {
+            color: var(--accent-orange);
+            margin-bottom: 2rem;
+            font-weight: 600;
+        }
+
+        .login-container input {
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-primary);
+            border-radius: 50px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .login-container button {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent-orange);
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 10px rgba(249,115,22,0.4);
+            cursor: pointer;
+            transition: 0.15s;
+            touch-action: manipulation;
+            min-height: 56px;
+        }
+
+        .login-container button:active { transform: scale(0.97); }
+        .login-container button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: var(--loss-color);
+            margin-top: 12px;
+            font-weight: 500;
+        }
+
+        /* main app (hidden initially) */
+        .app-main {
+            display: none;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--header-bg);
+            padding: 12px 20px;
+            border-radius: 60px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(4px);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .title-section h1 {
+            font-size: 1.7rem;
+            background: linear-gradient(135deg, #f97316, #000000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        body.dark .title-section h1 {
+            background: linear-gradient(135deg, #ffb347, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logout-btn, .theme-toggle {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            min-height: 44px;
+            min-width: 44px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* summary cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 18px 12px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .card h3 {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-orange);
+        }
+
+        /* entry form */
+        .entry-form {
+            background: var(--card-bg);
+            backdrop-filter: blur(6px);
+            border: 1px solid var(--border);
+            border-radius: 36px;
+            padding: 22px 18px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 18px;
+            margin-top: 10px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-field label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--accent-orange);
+        }
+
+        .form-field input, .form-field select {
+            padding: 14px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 16px; /* prevents zoom on iOS */
+            outline: none;
+        }
+
+        .checkbox-field {
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+        }
+        .checkbox-field label { order: 1; }
+        .checkbox-field input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--accent-orange);
+        }
+
+        /* materials table */
+        .materials-section {
+            margin: 24px 0 16px;
+        }
+        .materials-section h3 {
+            margin-bottom: 10px;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border-radius: 24px;
+            overflow: hidden;
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .items-table th, .items-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            min-width: 100px;
+        }
+        .items-table th {
+            background: var(--accent-orange);
+            color: white;
+            font-weight: 600;
+        }
+        .items-table td input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-primary);
+        }
+        .remove-item {
+            background: transparent;
+            border: 1px solid var(--loss-color);
+            color: var(--loss-color);
+            border-radius: 30px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-weight: bold;
+            min-height: 44px;
+        }
+        .add-item-btn {
+            margin: 16px 0 8px;
+            background: var(--accent-dark);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .preview-string {
+            background: var(--tag-bg);
+            padding: 12px;
+            border-radius: 30px;
+            font-family: monospace;
+            word-break: break-word;
+            margin: 12px 0;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+        }
+
+        .profit-loss {
+            font-size: 1.6rem;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 60px;
+            display: inline-block;
+        }
+        .profit { color: var(--profit-color); }
+        .loss { color: var(--loss-color); }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .form-actions button {
+            flex: 1 1 180px;
+            padding: 16px;
+            border-radius: 60px;
+            border: none;
+            background: var(--accent-orange);
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            min-height: 56px;
+        }
+        .form-actions .cancel-btn {
+            background: transparent;
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        /* records table */
+        .records-table-wrapper {
+            overflow-x: auto;
+            border-radius: 30px;
+            background: var(--card-bg);
+            padding: 4px;
+            box-shadow: var(--shadow);
+            position: relative;
+            min-height: 100px;
+        }
+        
+        .table-loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background: var(--surface);
+            border-radius: 30px;
+        }
+        
+        table#recordsTable {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+            font-size: 0.9rem;
+        }
+        #recordsTable th {
+            background: var(--accent-orange);
+            color: white;
+            padding: 16px 8px;
+        }
+        #recordsTable td {
+            padding: 14px 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .tag {
+            background: var(--tag-bg);
+            border-radius: 30px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+            border: 1px solid var(--accent-orange);
+        }
+        .action-btn {
+            background: transparent;
+            border: 1px solid var(--accent-orange);
+            color: var(--accent-orange);
+            padding: 8px 12px;
+            border-radius: 30px;
+            margin: 2px;
+            cursor: pointer;
+            min-width: 60px;
+        }
+
+        /* toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 320px;
+        }
+        .toast {
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            padding: 14px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            animation: slideIn 0.2s;
+            border-left: 6px solid var(--accent-orange);
+        }
+        @keyframes slideIn { from { opacity:0; transform: translateX(40px); } to { opacity:1; transform:translateX(0); } }
+
+        .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent-orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* mobile */
+        @media (max-width: 600px) {
+            .summary-cards { grid-template-columns: 1fr 1fr; }
+            .form-actions button { width: 100%; }
+            .app-header { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global loading overlay -->
+    <div id="globalLoading">
+        <div class="loading-spinner-large"></div>
+    </div>
+
+    <!-- Login screen -->
+    <div id="loginContainer" class="login-container">
+        <h2>🔐 Spa Salon</h2>
+        <input type="password" id="passwordInput" placeholder="Enter passcode" inputmode="numeric" pattern="\d*">
+        <button id="loginBtn">Unlock</button>
+        <div id="loginError" class="error-message"></div>
+        <div style="margin-top: 20px"><small></small></div>
+    </div>
+
+    <!-- Main dashboard -->
+    <div id="appMain" class="app-main">
+        <div class="app-header">
+            <div class="title-section">
+                <h1>💆🏽‍♀️ SPANISH SPA </h1>
+                <button class="theme-toggle" id="themeToggle">🌓 Dark</button>
+            </div>
+            <button class="logout-btn" id="logoutBtn">🚪 Logout</button>
+        </div>
+
+        <!-- summary cards -->
+        <div class="summary-cards" id="summaryCards">
+            <div class="card"><h3>📋 Records</h3><div class="value" id="totalRecords">0</div></div>
+            <div class="card"><h3>💰 Total payments</h3><div class="value" id="totalPayments">$0</div></div>
+            <div class="card"><h3>📦 Material cost</h3><div class="value" id="totalMaterialCost">$0</div></div>
+            <div class="card"><h3>📈 Profit</h3><div class="value" id="totalProfit">$0</div></div>
+            <div class="card"><h3>⏳ Pending done</h3><div class="value" id="pendingDone">0</div></div>
+        </div>
+
+        <!-- Form -->
+        <div class="entry-form" id="entryForm">
+            <h2 style="color: var(--accent-orange);">➕ Add / edit booking (USD)</h2>
+            <input type="hidden" id="editId" value="">
+            <div class="form-grid">
+                <div class="form-field"><label>Client name *</label><input type="text" id="clientName" placeholder="e.g. Maria"></div>
+                <div class="form-field"><label>Payment ($)</label><input type="number" id="paymentAmount" step="0.01" value="0"></div>
+                <div class="form-field"><label>Transport ($)</label><input type="number" id="transportCost" step="0.01" value="0"></div>
+                <div class="form-field"><label>Other cost ($)</label><input type="number" id="otherCost" step="0.01" value="0"></div>
+                <div class="form-field"><label>Booked date</label><input type="date" id="bookedDate"></div>
+                <div class="form-field checkbox-field"><label>Done?</label><input type="checkbox" id="doneCheck"></div>
+            </div>
+
+            <!-- materials dynamic table -->
+            <div class="materials-section">
+                <h3>🧴 Materials used (USD)</h3>
+                <table class="items-table" id="itemsTable">
+                    <thead><tr><th>Item name</th><th>Qty</th><th>Unit price ($)</th><th>Line total</th><th></th></tr></thead>
+                    <tbody id="itemsBody"></tbody>
+                </table>
+                <button class="add-item-btn" id="addItemBtn">➕ Add material</button>
+                <div class="preview-string" id="materialsPreview">— material preview —</div>
+            </div>
+
+            <!-- profit / loss display & totals -->
+            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <span class="profit-loss" id="profitDisplay">$0.00</span>
+                <span>Total expenses: <span id="totalExpensesDisplay">$0.00</span></span>
+            </div>
+
+            <div class="form-actions">
+                <button id="saveRecordBtn">💾 Save record</button>
+                <button class="cancel-btn" id="cancelFormBtn">Cancel</button>
+            </div>
+        </div>
+
+        <!-- records table -->
+        <div class="records-table-wrapper">
+            <div id="tableLoading" class="table-loading" style="display: none;">
+                <div class="loading"></div>
+            </div>
+            <table id="recordsTable" style="display: none;">
+                <thead><tr><th>ID</th><th>Client</th><th>Materials</th><th>Payment</th><th>Mat.Cost</th><th>Booked</th><th>Done</th><th>Expenses</th><th>Profit</th><th>Actions</th></tr></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        (function() {
+            // -------------------- CONFIG ----------------------
+            const API_URL = 'https://script.google.com/macros/s/AKfycbxVGbQ9tc0VxqZzKYIUtnGgjuY4DketwUaJa9vvhstMaGaQjvAdZ1vqtWL3ICUTGUjN/exec'; // <-- UPDATE AFTER DEPLOYMENT
+            const PASSCODE = '1001';
+            const CURRENCY_SYMBOL = '$';
+
+            // -------------------- STATE -----------------------
+            let materials = [];
+            let allRecords = [];
+            let currentEditId = null;
+            let isLoading = false;
+            let typingTimer = null; // For debouncing material updates
+
+            // -------------------- UI ELEMENTS -----------------
+            const globalLoading = document.getElementById('globalLoading');
+            const loginDiv = document.getElementById('loginContainer');
+            const appDiv = document.getElementById('appMain');
+            const passwordInput = document.getElementById('passwordInput');
+            const loginBtn = document.getElementById('loginBtn');
+            const loginError = document.getElementById('loginError');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const themeToggle = document.getElementById('themeToggle');
+            const itemsBody = document.getElementById('itemsBody');
+            const addItemBtn = document.getElementById('addItemBtn');
+            const materialsPreview = document.getElementById('materialsPreview');
+            const clientName = document.getElementById('clientName');
+            const paymentAmount = document.getElementById('paymentAmount');
+            const materialCost = document.getElementById('materialCost');
+            const transportCost = document.getElementById('transportCost');
+            const otherCost = document.getElementById('otherCost');
+            const bookedDate = document.getElementById('bookedDate');
+            const doneCheck = document.getElementById('doneCheck');
+            const editId = document.getElementById('editId');
+            const saveBtn = document.getElementById('saveRecordBtn');
+            const cancelBtn = document.getElementById('cancelFormBtn');
+            const profitDisplay = document.getElementById('profitDisplay');
+            const totalExpensesSpan = document.getElementById('totalExpensesDisplay');
+            const tableBody = document.getElementById('tableBody');
+            const recordsTable = document.getElementById('recordsTable');
+            const tableLoading = document.getElementById('tableLoading');
+            const summary = { 
+                totalRecords: document.getElementById('totalRecords'), 
+                totalPayments: document.getElementById('totalPayments'), 
+                totalMaterialCost: document.getElementById('totalMaterialCost'), 
+                totalProfit: document.getElementById('totalProfit'), 
+                pendingDone: document.getElementById('pendingDone') 
+            };
+
+            // ---------- helper functions ----------
+            function showToast(msg, type = 'info') { 
+                const t = document.createElement('div'); 
+                t.className = `toast toast-${type}`; 
+                t.innerText = msg; 
+                document.getElementById('toastContainer').appendChild(t); 
+                setTimeout(() => t.remove(), 3500); 
+            }
+            
+            function setLoading(loading) {
+                isLoading = loading;
+                if (loading) {
+                    globalLoading.style.display = 'flex';
+                } else {
+                    globalLoading.style.display = 'none';
+                }
+            }
+            
+            function formatMoney(val) { 
+                return `${CURRENCY_SYMBOL}${parseFloat(val || 0).toFixed(2)}`; 
+            }
+
+            // Calculate material total from materials array
+            function calculateMaterialTotal() {
+                return materials.reduce((acc, m) => acc + (Number(m.quantity) || 0) * (Number(m.unitPrice) || 0), 0);
+            }
+
+            // Update all derived fields (profit, expenses, preview)
+            function updateDerivedFields() {
+                // Build preview string (but don't show empty items)
+                const validMaterials = materials.filter(m => m.name && m.name.trim() !== '');
+                const str = validMaterials.map(m => `${m.name}-${m.quantity || 0}-${Math.round(m.unitPrice || 0)}`).join(',');
+                materialsPreview.innerText = str || '— no materials added —';
+
+                // Calculate totals
+                const matTotal = calculateMaterialTotal();
+                const pay = parseFloat(paymentAmount.value) || 0;
+                const transp = parseFloat(transportCost.value) || 0;
+                const other = parseFloat(otherCost.value) || 0;
+                const totalExp = matTotal + transp + other;
+                const profit = pay - totalExp;
+                
+                profitDisplay.innerText = formatMoney(profit);
+                profitDisplay.className = 'profit-loss ' + (profit >= 0 ? 'profit' : 'loss');
+                totalExpensesSpan.innerText = formatMoney(totalExp);
+            }
+
+            // Update line total for a specific row without full rerender
+            function updateLineTotal(rowIndex) {
+                const row = document.querySelector(`tr[data-material-index="${rowIndex}"]`);
+                if (row) {
+                    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                    const lineTotalCell = row.querySelector('.line-total');
+                    if (lineTotalCell) {
+                        lineTotalCell.innerText = formatMoney(qty * price);
+                    }
+                }
+            }
+
+            // Render material table with proper event handling (no full rerender on input)
+            function renderMaterialRows() {
+                let html = '';
+                materials.forEach((m, idx) => {
+                    const lineTotal = (Number(m.quantity) || 0) * (Number(m.unitPrice) || 0);
+                    html += `<tr data-material-index="${idx}">
+                        <td><input type="text" class="item-name" data-index="${idx}" value="${m.name || ''}" placeholder="item name"></td>
+                        <td><input type="number" class="item-qty" data-index="${idx}" value="${m.quantity || 0}" step="1" min="0"></td>
+                        <td><input type="number" class="item-price" data-index="${idx}" value="${m.unitPrice || 0}" step="0.01" min="0"></td>
+                        <td class="line-total">${formatMoney(lineTotal)}</td>
+                        <td><button class="remove-item" data-index="${idx}">✖ Remove</button></td>
+                    </tr>`;
+                });
+                itemsBody.innerHTML = html;
+
+                // Attach event listeners
+                document.querySelectorAll('.item-name').forEach(inp => {
+                    inp.addEventListener('input', function(e) {
+                        const i = this.dataset.index;
+                        materials[i].name = this.value;
+                        updateDerivedFields();
+                    });
+                });
+
+                document.querySelectorAll('.item-qty').forEach(inp => {
+                    inp.addEventListener('input', function(e) {
+                        const i = this.dataset.index;
+                        const val = parseInt(this.value) || 0;
+                        materials[i].quantity = val;
+                        // Update line total in this row only
+                        updateLineTotal(i);
+                        // Debounce material total update
+                        clearTimeout(typingTimer);
+                        typingTimer = setTimeout(() => {
+                            updateDerivedFields();
+                        }, 300);
+                    });
+                });
+
+                document.querySelectorAll('.item-price').forEach(inp => {
+                    inp.addEventListener('input', function(e) {
+                        const i = this.dataset.index;
+                        const val = parseFloat(this.value) || 0;
+                        materials[i].unitPrice = val;
+                        // Update line total in this row only
+                        updateLineTotal(i);
+                        // Debounce material total update
+                        clearTimeout(typingTimer);
+                        typingTimer = setTimeout(() => {
+                            updateDerivedFields();
+                        }, 300);
+                    });
+                });
+
+                document.querySelectorAll('.remove-item').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const i = this.dataset.index;
+                        materials.splice(i, 1);
+                        renderMaterialRows(); // Need full rerender when removing
+                        updateDerivedFields();
+                    });
+                });
+            }
+
+            addItemBtn.addEventListener('click', () => { 
+                materials.push({ name: '', quantity: 0, unitPrice: 0 }); 
+                renderMaterialRows(); 
+                updateDerivedFields();
+            });
+
+            // Listen to main form inputs
+            [paymentAmount, transportCost, otherCost].forEach(el => 
+                el.addEventListener('input', updateDerivedFields)
+            );
+
+            // load records from API
+            async function fetchRecords() {
+                if (!API_URL.startsWith('https')) { 
+                    showToast('Please set your Google Apps Script URL first', 'error'); 
+                    return; 
+                }
+                
+                setLoading(true);
+                recordsTable.style.display = 'none';
+                tableLoading.style.display = 'flex';
+                
+                try {
+                    // Add cache-busting
+                    const url = API_URL + '?action=getAll&t=' + Date.now();
+                    const res = await fetch(url);
+                    
+                    if (!res.ok) {
+                        throw new Error(`HTTP error! status: ${res.status}`);
+                    }
+                    
+                    const data = await res.json();
+                    
+                    if (data.status === 'error') {
+                        throw new Error(data.message || 'Unknown error');
+                    }
+                    
+                    allRecords = data.records || [];
+                    renderTable();
+                    updateSummary();
+                    
+                    recordsTable.style.display = 'table';
+                    tableLoading.style.display = 'none';
+                    
+                } catch(e) { 
+                    showToast('Failed to load: ' + e.message, 'error');
+                    console.error('Fetch error:', e);
+                    recordsTable.style.display = 'table';
+                    tableLoading.style.display = 'none';
+                    // Show empty table with message
+                    tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px;">❌ Error loading data. Check API URL.</td></tr>`;
+                } finally {
+                    setLoading(false);
+                }
+            }
+
+            function renderTable() {
+                if (!allRecords || allRecords.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 40px;">📭 No records found. Add your first booking!</td></tr>`;
+                    return;
+                }
+                
+                let html = '';
+                allRecords.forEach(r => {
+                    // Parse materials for tag display
+                    let matItems = '';
+                    if (r.materials_details) {
+                        matItems = r.materials_details.split(',').map(s => { 
+                            const p = s.split('-'); 
+                            return p.length === 3 ? `<span class="tag">${p[0]}-${p[1]}-$${p[2]}</span>` : ''; 
+                        }).join('');
+                    }
+                    
+                    html += `<tr>
+                        <td>${r.id || ''}</td>
+                        <td>${r.client_name || ''}</td>
+                        <td><div class="tag-list">${matItems || '—'}</div></td>
+                        <td>${formatMoney(r.payment_amount)}</td>
+                        <td>${formatMoney(r.material_cost)}</td>
+                        <td>${r.booked_date || ''}</td>
+                        <td>${r.done || 'No'}</td>
+                        <td>${formatMoney(r.total_expenses)}</td>
+                        <td class="${r.profit >= 0 ? 'profit' : 'loss'}">${formatMoney(r.profit)}</td>
+                        <td>
+                            <button class="action-btn" onclick="editRecord(${r.id})">✎ Edit</button>
+                            <button class="action-btn" onclick="deleteRecord(${r.id})">🗑 Del</button>
+                        </td>
+                    </tr>`;
+                });
+                tableBody.innerHTML = html;
+            }
+
+            function updateSummary() {
+                let totalPay = 0, totalMat = 0, totalProfit = 0, pending = 0;
+                allRecords.forEach(r => { 
+                    totalPay += Number(r.payment_amount) || 0; 
+                    totalMat += Number(r.material_cost) || 0; 
+                    totalProfit += Number(r.profit) || 0; 
+                    if (r.done !== 'Yes') pending++; 
+                });
+                summary.totalRecords.innerText = allRecords.length;
+                summary.totalPayments.innerText = formatMoney(totalPay);
+                summary.totalMaterialCost.innerText = formatMoney(totalMat);
+                summary.totalProfit.innerText = formatMoney(totalProfit);
+                summary.pendingDone.innerText = pending;
+            }
+
+            // Make functions global for onclick handlers
+            window.editRecord = function(id) {
+                const rec = allRecords.find(r => r.id == id);
+                if (!rec) return;
+                
+                currentEditId = id; 
+                editId.value = id;
+                clientName.value = rec.client_name || '';
+                paymentAmount.value = rec.payment_amount || 0;
+                transportCost.value = rec.transport_cost || 0;
+                otherCost.value = rec.other_cost || 0;
+                bookedDate.value = rec.booked_date || '';
+                doneCheck.checked = (rec.done === 'Yes');
+                
+                // Parse materials
+                materials = [];
+                if (rec.materials_details) {
+                    rec.materials_details.split(',').forEach(part => {
+                        if (!part) return;
+                        const [name, qty, price] = part.split('-');
+                        if (name) materials.push({ 
+                            name: name, 
+                            quantity: parseFloat(qty) || 0, 
+                            unitPrice: parseFloat(price) || 0 
+                        });
+                    });
+                }
+                
+                renderMaterialRows();
+                updateDerivedFields();
+                
+                // Scroll to form
+                document.getElementById('entryForm').scrollIntoView({ behavior: 'smooth' });
+            };
+
+            window.deleteRecord = async function(id) {
+                if (!confirm('Delete this record?')) return;
+                
+                setLoading(true);
+                try {
+                    const res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify({ action: 'delete', id: parseInt(id) }) 
+                    });
+                    const json = await res.json();
+                    
+                    if (json.status === 'success') {
+                        showToast('Record deleted', 'info');
+                        await fetchRecords(); // Refresh
+                    } else {
+                        throw new Error(json.message || 'Delete failed');
+                    }
+                } catch(e) { 
+                    showToast('Error: ' + e.message, 'error'); 
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            saveBtn.addEventListener('click', async () => {
+                if (!clientName.value.trim()) { 
+                    showToast('Client name is required', 'error'); 
+                    clientName.focus();
+                    return; 
+                }
+                
+                // Validate materials - at least one with name
+                const hasValidMaterial = materials.some(m => m.name && m.name.trim() !== '');
+                
+                const payload = {
+                    action: currentEditId ? 'update' : 'add',
+                    id: currentEditId ? parseInt(currentEditId) : null,
+                    client_name: clientName.value.trim(),
+                    materials_details: materials
+                        .filter(m => m.name && m.name.trim() !== '') // Only save non-empty materials
+                        .map(m => `${m.name.trim()}-${m.quantity || 0}-${Math.round(m.unitPrice || 0)}`)
+                        .join(','),
+                    payment_amount: parseFloat(paymentAmount.value) || 0,
+                    material_cost: calculateMaterialTotal(), // Send calculated total
+                    booked_date: bookedDate.value || new Date().toISOString().split('T')[0],
+                    done: doneCheck.checked ? 'Yes' : 'No',
+                    transport_cost: parseFloat(transportCost.value) || 0,
+                    other_cost: parseFloat(otherCost.value) || 0
+                };
+                
+                setLoading(true);
+                try {
+                    const res = await fetch(API_URL, { 
+                        method: 'POST', 
+                        body: JSON.stringify(payload) 
+                    });
+                    const json = await res.json();
+                    
+                    if (json.status === 'success') {
+                        showToast(currentEditId ? 'Record updated' : 'Record added', 'success');
+                        resetForm();
+                        await fetchRecords(); // Refresh
+                    } else {
+                        throw new Error(json.message || 'Save failed');
+                    }
+                } catch(e) { 
+                    showToast('Save failed: ' + e.message, 'error'); 
+                } finally {
+                    setLoading(false);
+                }
+            });
+
+            function resetForm() {
+                currentEditId = null; 
+                editId.value = '';
+                clientName.value = ''; 
+                paymentAmount.value = 0; 
+                transportCost.value = 0; 
+                otherCost.value = 0; 
+                bookedDate.value = ''; 
+                doneCheck.checked = false;
+                materials = []; 
+                renderMaterialRows(); 
+                updateDerivedFields();
+            }
+
+            cancelBtn.addEventListener('click', resetForm);
+
+            // ---------- AUTH ----------
+            function checkLogin() {
+                if (sessionStorage.getItem('spaLogged') === 'true') { 
+                    loginDiv.style.display = 'none'; 
+                    appDiv.style.display = 'block'; 
+                    fetchRecords(); 
+                } else {
+                    loginDiv.style.display = 'block';
+                    appDiv.style.display = 'none';
+                }
+            }
+
+            loginBtn.addEventListener('click', () => {
+                const code = passwordInput.value.trim();
+                if (code === PASSCODE) {
+                    sessionStorage.setItem('spaLogged', 'true');
+                    checkLogin();
+                } else { 
+                    loginError.innerText = '❌ Wrong passcode'; 
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            });
+
+            // Allow Enter key on password
+            passwordInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') loginBtn.click();
+            });
+
+            logoutBtn.addEventListener('click', () => { 
+                sessionStorage.removeItem('spaLogged'); 
+                checkLogin();
+                resetForm();
+            });
+
+            // theme toggle
+            themeToggle.addEventListener('click', () => { 
+                document.body.classList.toggle('dark'); 
+                themeToggle.innerText = document.body.classList.contains('dark') ? '☀️ Light' : '🌓 Dark'; 
+            });
+
+            // Initialize
+            checkLogin();
+            renderMaterialRows();
+            updateDerivedFields();
+
+            // Add one empty material row by default for better UX
+            if (materials.length === 0) {
+                materials.push({ name: '', quantity: 0, unitPrice: 0 });
+                renderMaterialRows();
+            }
+        })();
+    </script>
+    <!-- Important: replace API_URL above with your deployed script URL -->
+    <!-- Example: const API_URL = 'https://script.google.com/macros/s/your-script-id/exec'; -->
+</body>
+</html>
